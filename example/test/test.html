@@ -13,7 +13,7 @@ Open the developers console
 
   function assertEquals(title, actual, expected) {
     if (actual !== expected) {
-      console.error(title, actual);
+      console.error("failed ::", title, ":: ACTUAL: " + actual);
     } else {
       console.info("ok" + " :: " + title);
     }
@@ -24,8 +24,8 @@ Open the developers console
   bank.init();
 
   // Assert init device amount
-  var device_2 = bank.data[2];
-  var device_4 = bank.data[4];
+  var device_2 = bank.data.devices[2];
+  var device_4 = bank.data.devices[4];
   assertEquals("Init amount correct device_2", device_2.current_amount, 1000);
   assertEquals("Init amount correct device_4", device_4.current_amount, 1000);
   // Assert winning
@@ -54,9 +54,11 @@ Open the developers console
   console.info("TEST TRANSFER 100 COINS", device_4.current_amount, device_2.current_amount);
   bank.onMessage(device_2.device_id, {
     action: AirConsoleAction.MAKE_TRANSACTION,
-    amount: 100,
-    receiver_id: device_4.device_id,
-    sender_id: device_2.device_id
+    opts: {
+      amount: 100,
+      receiver_id: device_4.device_id,
+      sender_id: device_2.device_id
+    }
   });
   assertEquals("Should have 1000 as amount for device_2", device_2.current_amount, 1000);
   assertEquals("Should have 1000 as amount for device_4", device_4.current_amount, 1000);
