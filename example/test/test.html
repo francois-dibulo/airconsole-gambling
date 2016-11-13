@@ -62,6 +62,66 @@ Open the developers console
   });
   assertEquals("Should have 1000 as amount for device_2", device_2.current_amount, 1000);
   assertEquals("Should have 1000 as amount for device_4", device_4.current_amount, 1000);
+  // Device 2 makes deal with Device 4
+  console.info("TEST DEAL 50%", device_4.current_amount, device_2.current_amount);
+  bank.openRound();
+  // Send money
+  bank.createDeal({
+    amount: 100,
+    receiver_id: device_4.device_id,
+    sender_id: device_2.device_id,
+    type: 'INTEREST',
+    percent_value: 50,
+    deal_rounds: 2,
+    start_round: bank.data.bet_round_id,
+    success: true,
+    is_active: true
+  });
+  assertEquals("Should have 900 as amount for device_2", device_2.current_amount, 900);
+  assertEquals("Should have 1100 as amount for device_4", device_4.current_amount, 1100);
+  // Place bet
+  bank.placeBet(device_2.device_id, {
+    amount: 100,
+    success_tag: 'player_1_wins'
+  });
+  bank.placeBet(device_4.device_id, {
+    amount: 100,
+    success_tag: 'player_1_wins'
+  });
+  bank.evaluateRound('player_1_wins');
+  assertEquals("Should have 1050 as amount for device_2", device_2.current_amount, 1050);
+  assertEquals("Should have 1150 as amount for device_4", device_4.current_amount, 1150);
+  // New Round
+  bank.openRound();
+  // Place bet
+  bank.placeBet(device_2.device_id, {
+    amount: 100,
+    success_tag: 'player_1_wins'
+  });
+  bank.placeBet(device_4.device_id, {
+    amount: 100,
+    success_tag: 'player_1_wins'
+  });
+  bank.evaluateRound('player_1_wins');
+  assertEquals("Should have 1200 as amount for device_2", device_2.current_amount, 1050 + 100 + 50);
+  assertEquals("Should have 1200 as amount for device_4", device_4.current_amount, 1150 + 100 - 50);
+  // New Round
+  bank.openRound();
+  // Place bet
+  bank.placeBet(device_2.device_id, {
+    amount: 100,
+    success_tag: 'player_1_wins'
+  });
+  bank.placeBet(device_4.device_id, {
+    amount: 100,
+    success_tag: 'player_2_wins'
+  });
+  bank.evaluateRound('player_1_wins');
+  // DEAL IS OVER
+  assertEquals("Should have 1300 as amount for device_2", device_2.current_amount, 1200 + 100);
+  assertEquals("Should have 1100 as amount for device_4", device_4.current_amount, 1200 - 100);
+  assertEquals("Should have 0 deals for device_2", device_2.deals.length, 0);
+  assertEquals("Should have 0 deals for device_4", device_4.deals.length, 0);
 </script>
 </body>
 </html>

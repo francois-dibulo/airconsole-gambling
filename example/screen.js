@@ -20,7 +20,7 @@ function getRandomInt(min, max) {
 // This is the function we execute when all bets have been placed.
 // In your game it would be called after a round.
 var choseRandomWinner = function() {
-  var random_tag = bet_tags[getRandomInt(0, bet_tags.length - 1)];
+  var random_tag = 'rabbit_wins';// bet_tags[getRandomInt(0, bet_tags.length - 1)];
   bet_log_ele.append('<li class="break">CHOOSING RANDOM WINNER: ' + random_tag +  '</li>');
   bank.evaluateRound([random_tag]);
   bank.openRound();
@@ -28,8 +28,8 @@ var choseRandomWinner = function() {
 
 airconsole.onReady = function () {
   bank.init();
-  bank.setTagQuota('turtle_wins', 1.5);
-  bank.setTagQuota('rabbit_wins', 2);
+  // bank.setTagQuota('turtle_wins', 1.5);
+  // bank.setTagQuota('rabbit_wins', 2);
 };
 
 airconsole.onMessage = function (device_id, data) {
@@ -56,4 +56,12 @@ bank.onAllGamblersBet = function() {
   bet_log_ele.append('<li>Closing Round</li>');
   bank.closeRound();
   choseRandomWinner();
+};
+
+bank.onAddTransaction = function(device_id, amount, type) {
+  var gain = amount > 0 ? '+' : '';
+  var class_name = amount > 0 ? 'win' : 'loss';
+  var li = $('<li>device_id[' + device_id + '] makes ' + gain + amount + ' by ' + type + '</li>');
+  li.addClass(class_name);
+  bet_log_ele.append(li);
 };

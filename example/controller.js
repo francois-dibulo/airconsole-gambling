@@ -3,6 +3,7 @@ var gambler = new Gambler(airconsole);
 
 var current_amount_ele = $("#current_amount");
 var transaction_devices_ele = $("#transaction_devices");
+var deal_info_ele = $("#deals");
 
 airconsole.onReady = function () {
   gambler.init();
@@ -28,6 +29,10 @@ function renderDevices() {
   }
 }
 
+function renderDeals() {
+  deal_info_ele.html(gambler.getDeals().length);
+};
+
 airconsole.onMessage = function (device_id, data) {
   gambler.onMessage(device_id, data);
 };
@@ -37,6 +42,8 @@ airconsole.onCustomDeviceStateChange = function (device_id, data) {
 
   var amount = gambler.getCurrentAmount();
   setAmount(amount);
+  //
+  renderDeals();
 };
 
 // -----------------------------------------------------------------
@@ -59,5 +66,6 @@ $("#bet_button_turtle").on('click', function() {
 
 $("#transfer_button").on('click', function() {
   var device_id = transaction_devices_ele.val();
-  gambler.makeTransaction(100, device_id);
+  gambler.proposeDeal(100, parseInt(device_id, 10));
+  //gambler.makeTransaction(100, device_id);
 });

@@ -8,6 +8,7 @@ var Gambler = function(airconsole) {
   this.data = {
     current_amount: 0,
     bets: {},
+    deals: [],
     transactions: []
   };
   if (!this.airconsole) {
@@ -20,7 +21,12 @@ Gambler.prototype.init = function() {
 };
 
 Gambler.prototype.onMessage = function(device_id, data) {
-
+  if (data.action === AirConsoleAction.TRANSACTION_DEAL) {
+    this.onDeal(data.deal);
+  }
+  if (data.action === AirConsoleAction.RESPONSE_DEAL) {
+    this.onDealResponse(data.deal);
+  }
 };
 
 Gambler.prototype.onCustomDeviceStateChange = function(device_id, data) {
@@ -41,7 +47,6 @@ Gambler.prototype.getBankData = function() {
 Gambler.prototype.getDeviceData = function() {
   return this.data.devices[this.device_id];
 };
-
 
 /**
  * Returns the current available amount for the gambler to spent
@@ -74,6 +79,70 @@ Gambler.prototype.placeBet = function(amount, success_tag) {
       success_tag: success_tag
     });
   }
+};
+
+Gambler.prototype.onDealResponse = function(deal) {
+  var receiver_name = this.airconsole.getNickname(deal.receiver_id);
+  var text = receiver_name;
+  if (deal.success) {
+    text += " accepted your deal!";
+  } else {
+    text += " did not accepted your deal!";
+  }
+  alert(text);
+};
+
+Gambler.prototype.onDeal = function(deal) {
+  var receiver_name = this.airconsole.getNickname(deal.sender_id);
+  var text = "+++ CONFIRM DEAL +++\n";
+  text += receiver_name + " wants to send you: " + deal.amount + " COINS\n\n";
+  text += "You have to give back " + deal.percent_value + "% of your earnings after the next " + deal.deal_rounds + " rounds";
+  var deal_prompt = confirm(text);
+  if (deal_prompt) {
+    deal.success = true;
+    deal.is_active = true;
+    this.airconsole.message(AirConsole.SCREEN, {
+      action: AirConsoleAction.CREATE_DEAL,
+      deal: deal
+    });
+  }
+  this.airconsole.message(deal.sender_id, {
+    action: AirConsoleAction.RESPONSE_DEAL,
+    deal: deal
+  });
+};
+
+Gambler.prototype.getDeals = function() {
+  return this.getDeviceData().deals;
+};
+
+Gambler.prototype.hasDealsWithDeviceId = function(device_id) {
+  var deals = this.getDeals();
+  var result = [];
+  for (var i = 0; i < deals.length; i++) {
+    var deal = deals[i];
+    if (deal.sender_id === device_id || deal.receiver_id === device_id) {
+      result.push(deals);
+    }
+  }
+  return result;
+};
+
+Gambler.prototype.proposeDeal = function(amount, receiver_id) {
+  this.airconsole.message(receiver_id, {
+    action: AirConsoleAction.TRANSACTION_DEAL,
+    deal: {
+      amount: amount,
+      receiver_id: receiver_id,
+      sender_id: this.device_id,
+      type: 'INTEREST',
+      percent_value: 30,
+      deal_rounds: 2,
+      start_round: this.data.bet_round_id,
+      success: false,
+      is_active: false
+    }
+  });
 };
 
 Gambler.prototype.makeTransaction = function(amount, receiver_id) {

@@ -26,6 +26,12 @@ Bank.Mode = {
   Winner_Takes_All: 'winner_takes_all',
 };
 
+Bank.Transaction = {
+  Bet: 'bet',
+  Deal: 'deal',
+  Transaction: 'transaction'
+};
+
 /**
  * Initializes the bank. Call this in airconsole.ready()
  */
@@ -61,6 +67,7 @@ Bank.prototype.onConnect = function(device_id) {
       active: true,
       current_amount: this.start_value,
       bets: {},
+      deals: [],
       transactions: [
         {
           amount: this.start_value,
@@ -96,6 +103,9 @@ Bank.prototype.onMessage = function(device_id, data) {
   }
   if (data.action === AirConsoleAction.MAKE_TRANSACTION) {
     this.makeTransaction(data.opts || {});
+  }
+  if (data.action === AirConsoleAction.CREATE_DEAL) {
+    this.createDeal(data.deal || {});
   }
 };
 
@@ -174,6 +184,7 @@ Bank.prototype.evaluateRound = function(success_tags, bet_round_id) {
   } else {
     this.getResultIDsOfBetRound(success_tags, bet_round_id);
   }
+  this.evaluateDeals(success_tags);
   this.update();
 };
 
@@ -181,9 +192,7 @@ Bank.prototype.evaluateWinnerTakesAll = function(success_tags, bet_round_id) {
   var bank_data = this.getCustomData().devices;
   bet_round_id = bet_round_id || this.data.bet_round_id;
   var winners = [];
-  var losers = {};
   var total_loser_amount = 0;
-
 
   for (var device_id in bank_data) {
     var device_data = bank_data[device_id];
@@ -196,11 +205,7 @@ Bank.prototype.evaluateWinnerTakesAll = function(success_tags, bet_round_id) {
       if (success_tags.indexOf(bet.success_tag) !== -1) {
         winners.push(device_id);
       } else {
-        // if (!losers[device_id]) {
-        //   losers[device_id] = 0;
-        // }
-        // losers[device_id] = bet.amount;
-        this.addTransaction(device_id, -bet.amount, device_id);
+        this.addTransaction(device_id, -bet.amount, device_id, Bank.Transaction.Bet);
         total_loser_amount += bet.amount;
       }
     }
@@ -209,9 +214,8 @@ Bank.prototype.evaluateWinnerTakesAll = function(success_tags, bet_round_id) {
   var total_win = Math.round(total_loser_amount / winners.length);
   for (var i = 0; i < winners.length; i++) {
     var winner_device_id = winners[i];
-    this.addTransaction(winner_device_id, total_win, winner_device_id);
+    this.addTransaction(winner_device_id, total_win, winner_device_id, Bank.Transaction.Bet);
   }
-
 };
 
 /**
@@ -245,15 +249,58 @@ Bank.prototype.getResultIDsOfBetRound = function(success_tags, bet_round_id) {
           plus_amount *= quota;
         }
         devices_balance[device_id] += plus_amount;
-        this.addTransaction(device_id, plus_amount, device_id);
+        this.addTransaction(device_id, plus_amount, device_id, Bank.Transaction.Bet);
       } else {
         devices_balance[device_id] -= bet.amount;
-        this.addTransaction(device_id, -bet.amount, device_id);
+        this.addTransaction(device_id, -bet.amount, device_id, Bank.Transaction.Bet);
       }
 
     }
   }
   return devices_balance;
+};
+
+Bank.prototype.getDeviceBetWinForRound = function(device_id, bet_round_id) {
+  bet_round_id = bet_round_id || this.data.bet_round_id;
+  var bank_data = this.getCustomData().devices;
+  var device_data = bank_data[device_id];
+  var amount = 0;
+  for (var i = device_data.transactions.length - 1; i >= 0; i--) {
+    var transaction = device_data.transactions[i];
+    if (transaction.bet_round_id === bet_round_id &&
+        transaction.type === Bank.Transaction.Bet) {
+      amount += transaction.amount;
+    }
+  }
+  return amount;
+};
+
+Bank.prototype.getDeviceBalanceForRound = function(success_tags, device_id, bet_round_id) {
+  var bank_data = this.getCustomData().devices;
+  bet_round_id = bet_round_id || this.data.bet_round_id;
+  var device_balance = 0;
+
+  var device_data = bank_data[device_id];
+  var current_bets = device_data.bets[bet_round_id];
+  if (!current_bets) return 0;
+
+  for (var i = 0; i < current_bets.length; i++) {
+    var bet = current_bets[i];
+
+    // Has a correct bet
+    if (success_tags.indexOf(bet.success_tag) !== -1) {
+      var plus_amount = bet.amount;
+      var quota = this.tag_quotes[bet.success_tag];
+      if (quota) {
+        plus_amount *= quota;
+      }
+      device_balance += plus_amount;
+    } else {
+      device_balance -= bet.amount;
+    }
+
+  }
+  return device_balance;
 };
 
 Bank.prototype.getCurrentAmountOfDevice = function(device_id) {
@@ -299,7 +346,10 @@ Bank.prototype.makeTransaction = function(opts) {
   return success;
 };
 
-Bank.prototype.addTransaction = function(device_id, amount, sender_id) {
+Bank.prototype.onAddTransaction = function(device_id, amount, type) {};
+
+Bank.prototype.addTransaction = function(device_id, amount, sender_id, type) {
+  type = type || Bank.Transaction.Transaction;
   var bank_data = this.data.devices;
   var device_data = bank_data[device_id];
   var success = false;
@@ -307,12 +357,68 @@ Bank.prototype.addTransaction = function(device_id, amount, sender_id) {
     this.data.devices[device_id].transactions.push({
       amount: amount,
       ts: +(new Date()),
-      sender_id: sender_id
+      sender_id: sender_id,
+      type: type,
+      bet_round_id: this.data.bet_round_id
     });
     success = true;
     this.data.devices[device_id].current_amount += amount;
+    this.onAddTransaction(device_id, amount, type);
   }
   return success;
+};
+
+Bank.prototype.createDeal = function(deal) {
+  var bank_data = this.data.devices;
+  this.data.devices[deal.receiver_id].deals.push(deal);
+  this.data.devices[deal.sender_id].deals.push(deal);
+  this.addTransaction(deal.receiver_id, deal.amount, deal.sender_id, Bank.Transaction.Transaction);
+  this.addTransaction(deal.sender_id, -deal.amount, deal.sender_id, Bank.Transaction.Transaction);
+  this.update();
+};
+
+Bank.prototype.evaluateDeals = function(success_tags, bet_round_id) {
+  var bank_data = this.getCustomData().devices;
+  bet_round_id = bet_round_id || this.data.bet_round_id;
+
+  for (var device_id in bank_data) {
+    var remove_deals = [];
+    var device_data = bank_data[device_id];
+    var dev_id = parseInt(device_id, 10);
+
+    for (var i = 0; i < device_data.deals.length; i++) {
+      var deal = device_data.deals[i];
+      if (!deal.is_active) {
+        remove_deals.push(i);
+        continue;
+      };
+      if (deal.receiver_id === dev_id) {
+        // Deals still active
+        if (deal.deal_rounds - 1 + deal.start_round >= bet_round_id) {
+          var amount = 0;
+          if (this.mode === Bank.Mode.Winner_Takes_All) {
+            amount = this.getDeviceBetWinForRound(dev_id, bet_round_id);
+          } else {
+            amount = this.getDeviceBalanceForRound(success_tags, dev_id, bet_round_id);
+          }
+          // If it did win anything this round, then give it to the sender back
+          if (amount > 0) {
+            var percent_amount = Math.round((amount / 100) * deal.percent_value);
+            this.addTransaction(deal.sender_id, percent_amount, deal.receiver_id, Bank.Transaction.Deal);
+            this.addTransaction(deal.receiver_id, -percent_amount, deal.sender_id, Bank.Transaction.Deal);
+          }
+        }
+      }
+      if (deal.deal_rounds + deal.start_round === bet_round_id) {
+        deal.is_active = false;
+        remove_deals.push(i);
+      }
+    }
+
+    for (var i = remove_deals.length - 1; i >= 0; i--) {
+      device_data.deals.splice(remove_deals[i], 1);
+    }
+  }
 };
 
 Bank.prototype.getCustomData = function() {
