@@ -35,7 +35,7 @@ The screen is the bank. It receives and manages all transactions and bets.
 
 ##### Setup
 
-```
+```javascript
 var airconsole = new AirConsole();
 var bank = new Bank(airconsole, {
   // The bet-mode. If none set, default is: Bank.Mode.Default
@@ -49,7 +49,7 @@ There are currently two different modes:
   * Default: If you want players to place multiple bets and have a bet-quota.
   * Winner-Takes-All: If player can only bet on one thing.
 
-```
+```javascript
 airconsole.onReady = function () {
   // Init the bank as soon as AirConsole is ready
   bank.init();
@@ -62,7 +62,7 @@ airconsole.onReady = function () {
 
 Add the following methods to the airconsole methods
 
-```
+```javascript
 airconsole.onMessage = function (device_id, data) {
   bank.onMessage(device_id, data);
 };
@@ -79,7 +79,7 @@ airconsole.onDisconnect = function(device_id) {
 
 ##### Bank methods
 
-```
+```javascript
 // Resets the bank and all gamblers
 bank.reset();
 
@@ -120,7 +120,7 @@ bank.getCustomData();
 
 ##### Setup
 
-```
+```javascript
 var airconsole = new AirConsole();
 var gambler = new Gambler(airconsole);
 
@@ -143,7 +143,7 @@ airconsole.onCustomDeviceStateChange = function (device_id, data) {
 
 ##### Gambler methods
 
-```
+```javascript
 // Place a bet of 100 coins on the turtle
 $("#bet_button_turtle").on('click', function() {
   if (!gambler.isRoundClosed()) {

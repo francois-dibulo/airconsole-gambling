@@ -35,7 +35,7 @@ airconsole.onReady = function () {
 airconsole.onMessage = function (device_id, data) {
   if (data.action === AirConsoleAction.PLACE_BET && !bank.isLocked()) {
     var quota = bank.getTagQuota(data.success_tag) || 1;
-    bet_log_ele.append('<li>Bet: device_id[' + device_id + ']: ' + data.amount + ' Coins on: ' + data.success_tag + ' :: Quota ' + quota + '</li>');
+    bet_log_ele.append('<li>Bet: device_id[' + device_id + ']: ' + data.amount + ' Coins on: ' + data.success_tag + '</li>');
   }
   bank.onMessage(device_id, data);
 };
