@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Controller</title>
+  <style type="text/css">
+    body {
+      padding: 0;
+      margin: 0;
+      background: #FFFFFF;
+      font-size: 18px;
+    }
+    #current_amount {
+      margin-top: 50px;
+      text-align: center;
+      width: 100%;
+      font-size: 8vw;
+    }
+    button {
+      width: 90vw;
+      margin: 2vh auto;
+      padding: 7vw;
+      box-sizing: border-box;
+      background-color: #FFFFFF;
+      text-align: center;
+      cursor: pointer;
+      display: block;
+      font-size: 5vw;
+    }
+    select {
+      width: 90vw;
+      padding: 7vw;
+      margin: auto;
+      box-sizing: border-box;
+      background-color: #FFFFFF;
+      display: block;
+      font-size: 5vw;
+    }
+    h3 {
+      text-align: center;
+      font-size: 8vw;
+      margin: 4vh 0 2vh 0;
+    }
+  </style>
+</head>
+<body>
+
+<div id="current_amount"></div>
+
+<h3>PLACE BET</h3>
+<button id="bet_button_rabbit">PLACE 100 COINS on Rabbit</button>
+<button id="bet_button_turtle">PLACE 100 COINS on Turtle</button>
+
+<h3>TRANSFER</h3>
+<select id="transaction_devices"></select>
+<button id="transfer_button">TRANSFER 100 COINS</button>
+
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script type="text/javascript" src="https://www.airconsole.com/api/airconsole-1.6.0.js"></script>
+<script type="text/javascript" src="../shared.js"></script>
+<script type="text/javascript" src="../gambler.js"></script>
+<script type="text/javascript" src="controller.js"></script>
+
+</body>
+</html>

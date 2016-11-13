@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Spec</title>
+</head>
+<body>
+Open the developers console
+
+<script type="text/javascript" src="airconsole_mock.js"></script>
+<script type="text/javascript" src="../../bank.js"></script>
+<script type="text/javascript" src="../../shared.js"></script>
+<script type="text/javascript">
+
+  function assertEquals(title, actual, expected) {
+    if (actual !== expected) {
+      console.error(title, actual);
+    } else {
+      console.info("ok" + " :: " + title);
+    }
+  }
+
+  var airconsole = new AirConsoleMock();
+  var bank = new Bank(airconsole);
+  bank.init();
+
+  // Assert init device amount
+  var device_2 = bank.data[2];
+  var device_4 = bank.data[4];
+  assertEquals("Init amount correct device_2", device_2.current_amount, 1000);
+  assertEquals("Init amount correct device_4", device_4.current_amount, 1000);
+  // Assert winning
+  console.info("TEST PLACE BETS");
+  bank.placeBet(device_2.device_id, {
+    amount: 200,
+    success_tag: 'player_2_wins'
+  });
+  bank.placeBet(device_4.device_id, {
+    amount: 100,
+    success_tag: 'player_1_wins'
+  });
+  bank.evaluateRound('player_2_wins');
+  assertEquals("Should have 1200 as amount for device_2 - winning", device_2.current_amount, 1200);
+  assertEquals("Should have 900 as amount for device_4 - loosing", device_4.current_amount, 900);
+  // Assert loosing
+  bank.openRound();
+  bank.placeBet(device_2.device_id, {
+    amount: 100,
+    success_tag: 'player_2_wins'
+  });
+  bank.evaluateRound('player_1_wins');
+  assertEquals("Should have 1100 as amount for device_2 - loosing", device_2.current_amount, 1100);
+
+  // Device 2 sends Device 4 coins
+  console.info("TEST TRANSFER 100 COINS", device_4.current_amount, device_2.current_amount);
+  bank.onMessage(device_2.device_id, {
+    action: AirConsoleAction.MAKE_TRANSACTION,
+    amount: 100,
+    receiver_id: device_4.device_id,
+    sender_id: device_2.device_id
+  });
+  assertEquals("Should have 1000 as amount for device_2", device_2.current_amount, 1000);
+  assertEquals("Should have 1000 as amount for device_4", device_4.current_amount, 1000);
+</script>
+</body>
+</html>
