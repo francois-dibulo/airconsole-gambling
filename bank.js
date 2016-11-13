@@ -82,6 +82,7 @@ Bank.prototype.onConnect = function(device_id) {
  */
 Bank.prototype.onDisconnect = function(device_id) {
   this.data.devices[device_id].active = false;
+  this.checkAllDevicesPlacedBet();
 };
 
 /**
@@ -152,15 +153,11 @@ Bank.prototype.placeBet = function(device_id, data) {
       success_tag: data.success_tag // E.g. 'player_1_wins'
     };
     bank[device_id].bets[this.data.bet_round_id].push(bet);
-
     // Count bets
     if (this.round_bets_device_ids.indexOf(device_id) === -1) {
       this.round_bets_device_ids.push(device_id);
     }
-    if (this.round_bets_device_ids.length === Object.keys(this.data.devices).length) {
-      this.onAllGamblersBet();
-    }
-
+    this.checkAllDevicesPlacedBet();
     this.update();
   }
 };
@@ -340,4 +337,20 @@ Bank.prototype.hasBetOn = function(success_tags, bet_tags) {
     }
   }
   return false;
+};
+
+Bank.prototype.getActiveDeviceIds = function() {
+  var actives = [];
+  for (var id in this.data.devices) {
+    if (this.data.devices[id].active) {
+      actives.push(id);
+    }
+  }
+  return actives;
+};
+
+Bank.prototype.checkAllDevicesPlacedBet = function() {
+  if (this.round_bets_device_ids.length >= this.getActiveDeviceIds().length) {
+    this.onAllGamblersBet();
+  }
 };
