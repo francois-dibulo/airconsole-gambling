@@ -99,7 +99,7 @@ bank.onAllGamblersBet();
 // success_tags: Array of tags which won ['rabbit_wins', 'device_2_wins']
 bank.evaluateRound(success_tags);
 
-// Sets a quato for a bet tag
+// Sets a quota for a bet tag
 bank.setTagQuota('rabbit_wins', 1.5);
 
 bank.getTagQuota('rabbit_wins'); // Returns 1.5
@@ -156,5 +156,3 @@ $("#transfer_button").on('click', function() {
   gambler.makeTransaction(100, 2);
 });
 ```
-
-
